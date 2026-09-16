@@ -107,8 +107,8 @@ no external scripts.
 - Language, Danish, hours and pay are found with plain text rules, tested against real
   postings. A posting that phrases things unusually can be missed, and "requires Danish"
   only counts postings that say so.
-- Most Jobindex postings link to the employer's own site, so their details are not read.
-  The detail figures come from StuderendeOnline.
+- Many Jobindex postings send you on to the employer's own site, and those details are not
+  read. The detail figures on the dashboard come from StuderendeOnline.
 - Only portals that can be read without a browser are included for now.
 
 ## How it is built

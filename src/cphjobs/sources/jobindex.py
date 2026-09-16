@@ -121,10 +121,9 @@ def fetch(client: PoliteClient) -> FetchResult:
 
 
 def detail_url(posting: dict) -> str | None:
-    """Ads with an "h" id are hosted on Jobindex. Others ("r") live on the employer's own
-    site, which we don't read."""
-    sid = posting["source_id"]
-    return f"{BASE}/jobannonce/{sid}/" if sid.startswith("h") else None
+    """The full ad. Many redirect to the employer's own site, which the client refuses to
+    follow, so those are recorded as external."""
+    return f"{BASE}/jobannonce/{posting['source_id']}/"
 
 
 def ad_text(page: str) -> str | None:

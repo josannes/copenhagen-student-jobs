@@ -471,7 +471,7 @@ footer p { margin: 6px 0; }
   <a href="https://www.jobindex.dk">Jobindex</a>, and keeps the history. It follows each site's robots.txt and stores
   only the title, company, location, dates and the link, never the ad text or contact details.</p>
   <p>Once, each posting's own page is read for its language, whether it asks for Danish, hours per week and hourly pay.
-  This uses plain text rules, so a posting that phrases things unusually can be missed. Postings on Jobindex that link to
+  This uses plain text rules, so a posting that phrases things unusually can be missed. Postings on Jobindex that send you on to
   the employer's own site are not read.</p>
   <p>StuderendeOnline lists every student job in the Capital Region, so the figures above come from there.
   Jobindex shows at most 20 results per search, so its postings in the table are a sample.

@@ -45,17 +45,18 @@ def test_reads_each_open_posting_once():
         so("2").url: http_error(410),
         so("3").url: "<html>no ad text here</html>",
         so("4").url: ExternalRedirect("https://employer.example/jobs/4"),
+        "https://www.jobindex.dk/jobannonce/r99/": ExternalRedirect("https://employer.example/jobs/99"),
     })
 
     statuses = enrich(conn, client, TODAY)
     assert statuses == {"ok": 1, "gone": 1, "no_text": 1, "external": 2}
-    assert "https://www.jobindex.dk/vis-job/r99" not in client.requested  # employer sites are never requested
+    assert not any("employer.example" in url for url in client.requested)  # employer sites are never requested
 
     row = conn.execute("SELECT language, danish, hours_min, hours_max, pay_min, pay_kind FROM details WHERE source_id = '1'").fetchone()
     assert row == ("en", "optional", 15, 20, 160, "stated")
 
     assert enrich(conn, client, TODAY) == {}  # nothing is read twice
-    assert len(client.requested) == 4
+    assert len(client.requested) == 5
 
 
 def test_errors_are_retried_on_a_later_day():
