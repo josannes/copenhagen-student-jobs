@@ -39,6 +39,22 @@ CREATE TABLE IF NOT EXISTS counts (
     count      INTEGER NOT NULL,
     PRIMARY KEY (run_id, source, dimension, value)
 );
+
+-- What was read out of each posting's own page. The ad text itself is never stored.
+CREATE TABLE IF NOT EXISTS details (
+    source      TEXT NOT NULL,
+    source_id   TEXT NOT NULL,
+    checked_on  TEXT NOT NULL,
+    status      TEXT NOT NULL,          -- ok, no_text, external, disallowed, gone or error
+    language    TEXT,                   -- da or en
+    danish      TEXT,                   -- required, optional or NULL when not mentioned
+    hours_min   REAL,                   -- hours per week
+    hours_max   REAL,
+    pay_min     REAL,                   -- DKK per hour
+    pay_max     REAL,
+    pay_kind    TEXT,                   -- stated, agreement or NULL
+    PRIMARY KEY (source, source_id)
+);
 """
 
 UPSERT_POSTING = """

@@ -9,6 +9,7 @@ import json
 import re
 import sqlite3
 from dataclasses import dataclass
+from statistics import median
 from datetime import date, timedelta
 from pathlib import Path
 
@@ -64,15 +65,19 @@ def load(conn: sqlite3.Connection) -> Dashboard | None:
             (COMPLETE_SOURCE, COMPLETE_SOURCE),
         )
     ]
-    # Open = collected on the source's latest run, and the deadline hasn't passed.
+    # Open = collected on the source's latest run, the deadline hasn't passed, and the
+    # posting's own page hasn't been removed.
     postings = [
         dict(r)
         for r in conn.execute(
             """
-            SELECT * FROM postings p
-            WHERE last_seen = (SELECT MAX(last_seen) FROM postings WHERE source = p.source)
-              AND (deadline IS NULL OR deadline >= ?)
-            ORDER BY listed DESC, title
+            SELECT p.*, d.status AS details_status, d.language, d.danish,
+                   d.hours_min, d.hours_max, d.pay_min, d.pay_max, d.pay_kind
+            FROM postings p LEFT JOIN details d USING (source, source_id)
+            WHERE p.last_seen = (SELECT MAX(last_seen) FROM postings WHERE source = p.source)
+              AND (p.deadline IS NULL OR p.deadline >= ?)
+              AND COALESCE(d.status, '') != 'gone'
+            ORDER BY p.listed DESC, p.title
             """,
             (latest,),
         )
@@ -126,6 +131,60 @@ def stat_tiles(d: Dashboard) -> str:
         f'<div class="tile-value">{e(value)}</div><div class="tile-note">{e(note)}</div></div>'
         for label, value, note in tiles
     )
+
+
+def pct(part: int, whole: int) -> int:
+    return round(100 * part / whole) if whole else 0
+
+
+def fmt_hours(h: float) -> str:
+    return f"{h:g}"
+
+
+def requirement_tiles(d: Dashboard) -> str:
+    postings = d.complete
+    read = [p for p in postings if p["details_status"] == "ok"]
+    if not read:
+        return '<p class="empty">Each posting is being read for language, hours and pay. The figures appear after the next update.</p>'
+    english = [p for p in read if p["language"] == "en"]
+    open_to_all = sum(p["danish"] != "required" for p in english)
+    danish = sum(p["danish"] == "required" for p in read)
+    hours = [(p["hours_min"] + p["hours_max"]) / 2 for p in read if p["hours_min"] is not None]
+    pay = [p["pay_min"] for p in read if p["pay_kind"] == "stated"]
+    agreement = sum(p["pay_kind"] == "agreement" for p in read)
+    tiles = [
+        ("Written in English", f"{pct(len(english), len(read))}%", f"{fmt_int(open_to_all)} of them don't ask for Danish"),
+        ("Say Danish is required", f"{pct(danish, len(read))}%", "only postings that say it; many written in Danish expect it without saying"),
+        ("Typical hours per week", fmt_hours(median(hours)) if hours else "Not stated", f"median, stated in {pct(len(hours), len(read))}% of postings"),
+        ("Typical hourly pay", f"DKK {median(pay):.0f}" if len(pay) >= 5 else "Rarely stated",
+         f"{fmt_int(len(pay))} state an amount, {fmt_int(agreement)} follow a collective agreement"),
+    ]
+    return "".join(
+        f'<div class="tile"><div class="tile-label">{e(label)}</div>'
+        f'<div class="tile-value">{e(value)}</div><div class="tile-note">{e(note)}</div></div>'
+        for label, value, note in tiles
+    )
+
+
+def requirement_note(d: Dashboard) -> str:
+    postings = d.complete
+    read = sum(p["details_status"] == "ok" for p in postings)
+    if read and read < len(postings):
+        return f"Read from the postings on StuderendeOnline, {fmt_int(read)} of {fmt_int(len(postings))} so far. The rest follow over the next days."
+    return "Read from each posting on StuderendeOnline."
+
+
+def language_text(p: dict) -> str:
+    if p["language"] == "en":
+        return {"required": "English, Danish required", "optional": "English, Danish optional"}.get(p["danish"], "English")
+    return "Danish" if p["language"] == "da" else ""
+
+
+def hours_text(p: dict) -> str:
+    if p["hours_min"] is None:
+        return ""
+    low, high = fmt_hours(p["hours_min"]), fmt_hours(p["hours_max"])
+    return low if low == high else f"{low}-{high}"
 
 
 def sector_bars(d: Dashboard) -> str:
@@ -201,15 +260,19 @@ def posting_rows(d: Dashboard) -> str:
     for p in d.postings:
         source = SOURCE_NAMES.get(p["source"], p["source"])
         haystack = " ".join(filter(None, (p["title"], p["company"], p["location"]))).lower()
+        english = p["language"] == "en"
         rows.append(
             f'<tr data-source="{e(p["source"])}" data-deadline="{e(p["deadline"] or "")}" '
-            f'data-listed="{e(p["listed"] or "")}" data-search="{e(haystack)}">'
-            f'<td class="col-title"><a href="{e(safe_url(p["url"]))}" rel="noopener">{e(p["title"])}</a></td>'
+            f'data-listed="{e(p["listed"] or "")}" data-search="{e(haystack)}" '
+            f'data-english="{int(english)}" data-no-danish="{int(english and p["danish"] != "required")}">'
+            f'<td class="col-title"><a href="{e(safe_url(p["url"]))}" rel="noopener">{e(p["title"])}</a>'
+            f'<div class="src">{e(source)}</div></td>'
             f'<td data-label="Company">{e(p["company"] or "")}</td>'
             f'<td data-label="Location">{e(p["location"] or "")}</td>'
+            f'<td data-label="Language">{e(language_text(p))}</td>'
+            f'<td data-label="Hours/week" class="num">{e(hours_text(p))}</td>'
             f'<td data-label="Deadline">{e(deadline_text(p))}</td>'
-            f'<td data-label="Listed" class="num">{e(fmt_date(p["listed"]))}</td>'
-            f'<td data-label="Source">{e(source)}</td></tr>'
+            f'<td data-label="Listed" class="num">{e(fmt_date(p["listed"]))}</td></tr>'
         )
     return "".join(rows)
 
@@ -229,6 +292,8 @@ def render(d: Dashboard) -> str:
         "as_of": e(fmt_date(d.as_of)),
         "total": fmt_int(total),
         "tiles": stat_tiles(d),
+        "req_note": e(requirement_note(d)),
+        "req_tiles": requirement_tiles(d),
         "sector_note": e(f"The largest sectors on StuderendeOnline, {fmt_int(sector_sum)} of {fmt_int(total)} postings."),
         "sector_bars": sector_bars(d),
         "total_line": total_line(d),
@@ -325,6 +390,10 @@ th { text-align: left; font-weight: 600; color: var(--ink-2); border-bottom: 1px
 td { border-bottom: 1px solid var(--grid); padding: 8px; vertical-align: top; }
 td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .col-title a { font-weight: 500; }
+.src { color: var(--muted); font-size: 0.8rem; }
+tr[hidden] { display: none !important; }  /* the mobile layout sets rows to display: block */
+.requirements { margin-top: 12px; }
+.requirements .tile { background: var(--page); }
 @media (max-width: 860px) {
   .hero-value { font-size: 48px; }
   thead { display: none; }
@@ -352,6 +421,12 @@ footer p { margin: 6px 0; }
 
 <div class="tiles">{{tiles}}</div>
 
+<section class="card requirements">
+  <h2>What the postings ask for</h2>
+  <p class="note">{{req_note}}</p>
+  <div class="tiles">{{req_tiles}}</div>
+</section>
+
 <div class="grid-2">
   <section class="card">
     <h2>Which sectors are hiring</h2>
@@ -370,6 +445,11 @@ footer p { margin: 6px 0; }
   <p class="note">Every posting links to the portal, where you read the ad and apply.</p>
   <div class="filters">
     <input id="q" type="search" placeholder="Search title, company or location" aria-label="Search postings">
+    <select id="lang" aria-label="Language">
+      <option value="">All languages</option>
+      <option value="english">Written in English</option>
+      <option value="no-danish">English, Danish not required</option>
+    </select>
     <select id="source" aria-label="Source"><option value="">All sources</option>{{source_options}}</select>
     <select id="sort" aria-label="Sort">
       <option value="listed">Newest first</option>
@@ -379,7 +459,7 @@ footer p { margin: 6px 0; }
   <p class="count" id="count">{{posting_count}} postings</p>
   <div style="overflow-x:auto">
   <table>
-    <thead><tr><th>Title</th><th>Company</th><th>Location</th><th>Deadline</th><th>Listed</th><th>Source</th></tr></thead>
+    <thead><tr><th>Title</th><th>Company</th><th>Location</th><th>Language</th><th>Hours/week</th><th>Deadline</th><th>Listed</th></tr></thead>
     <tbody id="rows">{{rows}}</tbody>
   </table>
   </div>
@@ -390,6 +470,9 @@ footer p { margin: 6px 0; }
   <p>Every day a script reads the student job listings on <a href="https://studerendeonline.dk">StuderendeOnline</a> and
   <a href="https://www.jobindex.dk">Jobindex</a>, and keeps the history. It follows each site's robots.txt and stores
   only the title, company, location, dates and the link, never the ad text or contact details.</p>
+  <p>Once, each posting's own page is read for its language, whether it asks for Danish, hours per week and hourly pay.
+  This uses plain text rules, so a posting that phrases things unusually can be missed. Postings on Jobindex that link to
+  the employer's own site are not read.</p>
   <p>StuderendeOnline lists every student job in the Capital Region, so the figures above come from there.
   Jobindex shows at most 20 results per search, so its postings in the table are a sample.
   The same job can appear on both sites. "Listed" is the date the portal shows, which for StuderendeOnline is when the posting was last updated.</p>
@@ -402,6 +485,7 @@ footer p { margin: 6px 0; }
   const rows = [...document.querySelectorAll("#rows tr")];
   const tbody = document.getElementById("rows");
   const q = document.getElementById("q"), source = document.getElementById("source"), sort = document.getElementById("sort");
+  const lang = document.getElementById("lang");
   const count = document.getElementById("count");
   function update() {
     const words = q.value.toLowerCase().split(/\\s+/).filter(Boolean);
@@ -412,6 +496,7 @@ footer p { margin: 6px 0; }
     let shown = 0;
     for (const row of sorted) {
       const match = (!source.value || row.dataset.source === source.value)
+        && (!lang.value || (lang.value === "english" ? row.dataset.english === "1" : row.dataset.noDanish === "1"))
         && words.every(w => row.dataset.search.includes(w));
       row.hidden = !match;
       shown += match;
@@ -419,7 +504,7 @@ footer p { margin: 6px 0; }
     }
     count.textContent = shown.toLocaleString("en") + (shown === 1 ? " posting" : " postings");
   }
-  q.addEventListener("input", update); source.addEventListener("change", update); sort.addEventListener("change", update);
+  q.addEventListener("input", update); source.addEventListener("change", update); sort.addEventListener("change", update); lang.addEventListener("change", update);
 
   const tip = document.createElement("div");
   tip.className = "tip"; tip.hidden = true; document.body.appendChild(tip);

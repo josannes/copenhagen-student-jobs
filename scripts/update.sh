@@ -57,7 +57,7 @@ if ! git pull --rebase --quiet; then
 fi
 
 status=0
-output=$(uv run cphjobs fetch --export data/export 2>&1) || status=$?
+output=$(uv run cphjobs fetch --details --export data/export 2>&1) || status=$?
 echo "$output"
 
 git add data

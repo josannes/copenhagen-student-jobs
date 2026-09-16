@@ -14,6 +14,8 @@ from datetime import date, datetime
 from urllib.parse import quote_plus
 from zoneinfo import ZoneInfo
 
+from bs4 import BeautifulSoup
+
 from ..http import PoliteClient
 from ..models import Count, FetchResult, Posting
 
@@ -116,3 +118,15 @@ def fetch(client: PoliteClient) -> FetchResult:
         result.postings.extend(new)
         log.info("jobindex %r: %d of %d hits, %d new", query, len(postings), hits, len(new))
     return result
+
+
+def detail_url(posting: dict) -> str | None:
+    """Ads with an "h" id are hosted on Jobindex. Others ("r") live on the employer's own
+    site, which we don't read."""
+    sid = posting["source_id"]
+    return f"{BASE}/jobannonce/{sid}/" if sid.startswith("h") else None
+
+
+def ad_text(page: str) -> str | None:
+    body = BeautifulSoup(page, "html.parser").select_one("section.jobtext-jobad__body")
+    return re.sub(r"\s+", " ", body.get_text(" ")).strip() or None if body else None

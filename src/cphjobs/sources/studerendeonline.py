@@ -129,3 +129,12 @@ def fetch(client: PoliteClient) -> FetchResult:
     if total is not None:
         result.counts.append(Count(NAME, "total", "all", total))
     return result
+
+
+def detail_url(posting: dict) -> str | None:
+    return posting["url"]
+
+
+def ad_text(page: str) -> str | None:
+    content = BeautifulSoup(page, "html.parser").select_one("div.jobContent")
+    return _clean(content.get_text(" ")) or None if content else None

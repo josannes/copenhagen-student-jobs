@@ -55,3 +55,25 @@ def test_portal_text_is_escaped_and_links_are_safe():
     assert "<script>alert(1)" not in page
     assert "&lt;script&gt;alert(1)&lt;/script&gt; {{repo}}" in page
     assert 'href="javascript:' not in page
+
+
+def test_requirement_tiles_and_language_filter():
+    conn = db.connect(":memory:")
+    day = date(2026, 9, 16)
+    run(conn, day, [so("1"), so("2"), so("3")], [Count("studerendeonline", "total", "all", 3)])
+    rows = [
+        ("1", "ok", "en", "optional", 15, 20),
+        ("2", "ok", "da", "required", 10, 10),
+        ("3", "gone", None, None, None, None),
+    ]
+    conn.executemany(
+        "INSERT INTO details (source, source_id, checked_on, status, language, danish, hours_min, hours_max)"
+        " VALUES ('studerendeonline', ?, '2026-09-16', ?, ?, ?, ?, ?)",
+        rows,
+    )
+    page = render(load(conn))
+    assert "Job 3" not in page  # removed from the portal
+    assert "Written in English" in page and "50%" in page
+    assert "English, Danish optional" in page
+    assert 'data-no-danish="1"' in page
+    assert ">15-20<" in page

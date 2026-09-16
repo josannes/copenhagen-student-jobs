@@ -6,6 +6,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from . import db
+from .enrich import enrich
 from .export import export
 from .http import PoliteClient
 from .site import build as build_site
@@ -30,6 +31,14 @@ def cmd_fetch(args: argparse.Namespace) -> int:
             continue
         db.save(conn, run_id, run_date, result)
         log.info("%s: saved %d postings and %d counts", name, len(result.postings), len(result.counts))
+
+    if args.details:
+        try:
+            statuses = enrich(conn, client, run_date, limit=args.details_limit)
+            log.info("details: %s", dict(statuses) or "nothing new to read")
+        except Exception:
+            log.exception("details failed, continuing with the export")
+            failed.append("details")
 
     if args.export:
         for path in export(conn, args.export):
@@ -58,6 +67,8 @@ def main(argv: list[str] | None = None) -> int:
     fetch = sub.add_parser("fetch", help="collect postings from the portals")
     fetch.add_argument("--source", action="append", choices=list(SOURCES), help="repeatable; default is all")
     fetch.add_argument("--delay", type=float, default=3.0, help="seconds between requests to one site")
+    fetch.add_argument("--details", action="store_true", help="also read new postings' own pages")
+    fetch.add_argument("--details-limit", type=int, default=200, metavar="N", help="read at most N postings per run")
     fetch.add_argument("--export", type=Path, metavar="DIR", help="also write CSV exports to DIR")
     fetch.set_defaults(func=cmd_fetch)
 

@@ -7,10 +7,12 @@ from pathlib import Path
 
 QUERIES = {
     "postings.csv": """
-        SELECT source, source_id, title, company, location, latitude, longitude, url,
-               listed, deadline, deadline_kind, first_seen, last_seen
-        FROM postings
-        ORDER BY first_seen DESC, source, source_id
+        SELECT p.source, p.source_id, p.title, p.company, p.location, p.latitude, p.longitude, p.url,
+               p.listed, p.deadline, p.deadline_kind, p.first_seen, p.last_seen,
+               d.status AS details_status, d.language, d.danish, d.hours_min, d.hours_max,
+               d.pay_min, d.pay_max, d.pay_kind
+        FROM postings p LEFT JOIN details d USING (source, source_id)
+        ORDER BY p.first_seen DESC, p.source, p.source_id
     """,
     # One row per day and source: if a source was fetched twice on the same day, keep the
     # later run so the dashboard never double counts.

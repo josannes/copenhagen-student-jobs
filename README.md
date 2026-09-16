@@ -15,13 +15,14 @@ history in a SQLite database, and publishes a dashboard that answers questions l
 - How many student jobs are open in Greater Copenhagen, and how is that changing?
 - Which sectors are hiring students right now?
 - When do the deadlines fall, and how many say "apply as soon as possible"?
+- How many postings are written in English, and how many ask for Danish?
+- How many hours a week, and what hourly pay, where the posting says?
 - Which postings are new, with a link to each one?
 
 The portals only show what is open today. The value here is the history, which grows
 every day.
 
-Planned: a map, hours per week, pay where it is stated, and how often Danish is required.
-Those need a look at each posting, not just the listing.
+Planned: a map of where the jobs are, and more portals.
 
 ## Who it is for
 
@@ -51,7 +52,10 @@ More portals will be added where their terms and robots.txt allow it.
   portals use, and anything it disallows is refused. That is why the Jobindex RSS feed is
   not used: robots.txt disallows its `geoareaid` parameter.
 - One request every three seconds per site, with a user agent that links to this repository.
-- **Kept:** title, company, location, link, the listing date and the deadline.
+- Each posting's own page is read once, and only what the rules in
+  [`details.py`](src/cphjobs/details.py) find is kept: language, whether Danish is required,
+  hours per week and hourly pay. Redirects to other sites are never followed.
+- **Kept:** title, company, location, link, the listing date, the deadline and those details.
   **Not kept:** the ad text, contact persons or any other personal data. To read a
   posting, follow the link to the portal.
 
@@ -80,6 +84,7 @@ it to GitHub Pages.
 |---|---|---|
 | `postings` | posting | `first_seen` and `last_seen` are the first and last day it was collected |
 | `counts` | run, source and number | Totals the portals report: all postings, hits per search term, postings per sector |
+| `details` | posting | Language, Danish requirement, hours per week and hourly pay, read once from the posting's page, or why it couldn't be read (`gone`, `external`, ...) |
 | `runs` | collection run | Date and time |
 
 The CSV exports (`postings.csv`, `counts.csv`) are there for anyone who wants to analyse the
@@ -99,6 +104,11 @@ no external scripts.
 - `last_seen` is the last day a posting was collected, not the day it closed.
 - The same job can be posted on both portals and then appears twice in the table. The
   headline figures use StuderendeOnline only, so they are not double counted.
+- Language, Danish, hours and pay are found with plain text rules, tested against real
+  postings. A posting that phrases things unusually can be missed, and "requires Danish"
+  only counts postings that say so.
+- Most Jobindex postings link to the employer's own site, so their details are not read.
+  The detail figures come from StuderendeOnline.
 - Only portals that can be read without a browser are included for now.
 
 ## How it is built
