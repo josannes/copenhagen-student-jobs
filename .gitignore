@@ -1,0 +1,16 @@
+# Personal, never public
+CLAUDE.local.md
+.claude/settings.local.json
+
+# Secrets
+.env
+.env.*
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+.venv/
+.pytest_cache/
+*.egg-info/
