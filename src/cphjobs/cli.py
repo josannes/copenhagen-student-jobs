@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 from . import db
 from .export import export
 from .http import PoliteClient
+from .site import build as build_site
 from .sources import SOURCES
 
 log = logging.getLogger("cphjobs")
@@ -42,6 +43,11 @@ def cmd_export(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_site(args: argparse.Namespace) -> int:
+    log.info("wrote %s", build_site(db.connect(args.db), args.out))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="cphjobs", description="Collect student job postings in Greater Copenhagen."
@@ -58,6 +64,10 @@ def main(argv: list[str] | None = None) -> int:
     exp = sub.add_parser("export", help="write CSV files for the dashboard")
     exp.add_argument("--out", type=Path, default=Path("data/export"))
     exp.set_defaults(func=cmd_export)
+
+    site = sub.add_parser("site", help="build the public dashboard page")
+    site.add_argument("--out", type=Path, default=Path("site"))
+    site.set_defaults(func=cmd_site)
 
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")

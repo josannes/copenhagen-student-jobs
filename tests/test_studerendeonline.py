@@ -12,7 +12,7 @@ CARD = """
     <div class="job-content">
       <a href="/job/{id}/example-slug/example-title/">
         <div class="job-header"> {title} </div>
-        <div class="job-teaser">Studiejob, Deltidsjob hos {company}, Storkøbenhavn, Øresundsregionen</div>
+        <div class="job-teaser">Studiejob, Deltidsjob hos {company}, Storkøbenhavn ( Delvist fjernarbejde ), Øresundsregionen</div>
         <div class="job-description">Ad text we never store.</div>
       </a>
       <div class="info-links">
@@ -45,7 +45,7 @@ def test_parse_list_page():
     assert first.title == "Studentermedhjælper til data"
     # A company name with a comma still splits cleanly because the logo alt text gives the name.
     assert first.company == "Eksempel A/S, Afdeling Nord"
-    assert first.location == "Storkøbenhavn, Øresundsregionen"
+    assert first.location == "Storkøbenhavn (Delvist fjernarbejde), Øresundsregionen"
     assert first.listed == date(2026, 8, 19)
     assert (first.deadline, first.deadline_kind) == (None, "asap")
 
@@ -59,7 +59,7 @@ def test_agency_posting_without_logo():
     html = html.replace('<img class="lazy" alt="Eksempel Rekruttering A/S - logo" />', "")
     (posting,), _ = so.parse_list_page(list_page([html]))
     assert posting.company == "Eksempel Rekruttering A/S"
-    assert posting.location == "Storkøbenhavn, Øresundsregionen"
+    assert posting.location == "Storkøbenhavn (Delvist fjernarbejde), Øresundsregionen"
 
 
 def test_parse_sector_counts():

@@ -29,7 +29,8 @@ def list_url(page: int) -> str:
 
 
 def _clean(text: str) -> str:
-    return re.sub(r"\s+", " ", text).strip()
+    text = re.sub(r"\s+", " ", text).strip()
+    return re.sub(r"\(\s+", "(", re.sub(r"\s+\)", ")", text))  # "( Delvist fjernarbejde )"
 
 
 def _dmy(text: str) -> date | None:

@@ -2,21 +2,26 @@
 
 A living picture of the student job market in Greater Copenhagen.
 
-> **Status: in progress.** Collection from two portals works. The dashboard and the
-> scheduled updates are being built.
+**Dashboard: [josannes.github.io/copenhagen-student-jobs](https://josannes.github.io/copenhagen-student-jobs/)**
+
+> **Status: in progress.** Two portals are collected every day and the dashboard is live.
+> More portals and more detail per posting are next.
 
 ## What it does
 
-It collects student job postings from Danish job portals, keeps the history in a SQLite
-database, and turns it into a dashboard that answers questions like:
+Every morning it collects the student job postings from Danish job portals, keeps the
+history in a SQLite database, and publishes a dashboard that answers questions like:
 
-- Which sectors are hiring students right now, and how is that changing week by week?
-- How many student jobs are open in Greater Copenhagen?
-- Where in the city are they?
+- How many student jobs are open in Greater Copenhagen, and how is that changing?
+- Which sectors are hiring students right now?
 - When do the deadlines fall, and how many say "apply as soon as possible"?
+- Which postings are new, with a link to each one?
 
-Planned: hours per week, pay where it is stated, and how often Danish is required. Those
-need a look at each posting, not just the listing.
+The portals only show what is open today. The value here is the history, which grows
+every day.
+
+Planned: a map, hours per week, pay where it is stated, and how often Danish is required.
+Those need a look at each posting, not just the listing.
 
 ## Who it is for
 
@@ -59,8 +64,13 @@ uv sync
 uv run cphjobs fetch --export data/export
 ```
 
-This writes `data/jobs.db` and two CSV files in `data/export/`. Run the tests with
+This writes `data/jobs.db` and two CSV files in `data/export/`. Build the dashboard page
+with `uv run cphjobs site`, which writes `site/index.html`. Run the tests with
 `uv run pytest`.
+
+A [GitHub Action](.github/workflows/update.yml) runs the collection every day at 07:00
+Copenhagen time, commits the updated data to this repository, and publishes the page to
+GitHub Pages.
 
 ## Data
 
@@ -70,18 +80,23 @@ This writes `data/jobs.db` and two CSV files in `data/export/`. Run the tests wi
 | `counts` | run, source and number | Totals the portals report: all postings, hits per search term, postings per sector |
 | `runs` | collection run | Date and time |
 
-The CSV exports (`postings.csv`, `counts.csv`) are what the dashboard reads.
+The CSV exports (`postings.csv`, `counts.csv`) are there for anyone who wants to analyse the
+data in Excel, Power BI or elsewhere. They update every day at stable URLs, for example
+`https://raw.githubusercontent.com/josannes/copenhagen-student-jobs/main/data/export/postings.csv`.
 
 ## Dashboard
 
-Built in Power BI on top of the CSV exports, so the published report refreshes on its own.
-Link coming.
+One static page, built from the database by [`site.py`](src/cphjobs/site.py). It works
+without JavaScript; a small script adds search, filters and hover details. No tracking and
+no external scripts.
 
 ## Limitations
 
 - Jobindex shows at most 20 results per search, and its robots.txt disallows paging. Jobindex
   postings are therefore a sample, while its hit counts are complete.
 - `last_seen` is the last day a posting was collected, not the day it closed.
+- The same job can be posted on both portals and then appears twice in the table. The
+  headline figures use StuderendeOnline only, so they are not double counted.
 - Only portals that can be read without a browser are included for now.
 
 ## How it is built
