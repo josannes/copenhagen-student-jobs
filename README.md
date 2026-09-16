@@ -9,7 +9,7 @@ A living picture of the student job market in Greater Copenhagen.
 
 ## What it does
 
-Every morning it collects the student job postings from Danish job portals, keeps the
+Every day it collects the student job postings from Danish job portals, keeps the
 history in a SQLite database, and publishes a dashboard that answers questions like:
 
 - How many student jobs are open in Greater Copenhagen, and how is that changing?
@@ -68,9 +68,11 @@ This writes `data/jobs.db` and two CSV files in `data/export/`. Build the dashbo
 with `uv run cphjobs site`, which writes `site/index.html`. Run the tests with
 `uv run pytest`.
 
-A [GitHub Action](.github/workflows/update.yml) runs the collection every day at 07:00
-Copenhagen time, commits the updated data to this repository, and publishes the page to
-GitHub Pages.
+The collection runs once a day with [`scripts/update.sh`](scripts/update.sh), which commits
+the new data to this repository. It runs on a personal computer, not in GitHub Actions,
+because StuderendeOnline refuses requests from cloud servers. Every push of new data
+triggers a [workflow](.github/workflows/publish.yml) that rebuilds the page and publishes
+it to GitHub Pages.
 
 ## Data
 

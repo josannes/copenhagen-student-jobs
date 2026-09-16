@@ -1,0 +1,33 @@
+name: Publish dashboard
+
+# The data is collected on a personal computer (see scripts/update.sh), because
+# StuderendeOnline refuses requests from cloud servers such as GitHub Actions.
+# This workflow rebuilds and publishes the page whenever new data or code is pushed.
+
+on:
+  push:
+    branches: [main]
+    paths: ["data/**", "src/**", "pyproject.toml", "uv.lock", ".github/workflows/**"]
+  workflow_dispatch:
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - run: uv run pytest -q
+      - run: uv run cphjobs site --out site
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - uses: actions/deploy-pages@v4
