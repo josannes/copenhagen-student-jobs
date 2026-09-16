@@ -180,6 +180,16 @@ def language_text(p: dict) -> str:
     return "Danish" if p["language"] == "da" else ""
 
 
+def detail_cells(p: dict) -> str:
+    if p["details_status"] == "external":
+        # The portal sends applicants on to the employer's site, which isn't read.
+        return '<td colspan="2" class="muted">Details on employer\'s site</td>'
+    return (
+        f'<td data-label="Language">{e(language_text(p))}</td>'
+        f'<td data-label="Hours/week" class="num">{e(hours_text(p))}</td>'
+    )
+
+
 def hours_text(p: dict) -> str:
     if p["hours_min"] is None:
         return ""
@@ -269,8 +279,7 @@ def posting_rows(d: Dashboard) -> str:
             f'<div class="src">{e(source)}</div></td>'
             f'<td data-label="Company">{e(p["company"] or "")}</td>'
             f'<td data-label="Location">{e(p["location"] or "")}</td>'
-            f'<td data-label="Language">{e(language_text(p))}</td>'
-            f'<td data-label="Hours/week" class="num">{e(hours_text(p))}</td>'
+            f"{detail_cells(p)}"
             f'<td data-label="Deadline">{e(deadline_text(p))}</td>'
             f'<td data-label="Listed" class="num">{e(fmt_date(p["listed"]))}</td></tr>'
         )
@@ -391,6 +400,7 @@ td { border-bottom: 1px solid var(--grid); padding: 8px; vertical-align: top; }
 td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
 .col-title a { font-weight: 500; }
 .src { color: var(--muted); font-size: 0.8rem; }
+td.muted { color: var(--muted); }
 tr[hidden] { display: none !important; }  /* the mobile layout sets rows to display: block */
 .requirements { margin-top: 12px; }
 .requirements .tile { background: var(--page); }

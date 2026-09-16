@@ -60,11 +60,12 @@ def test_portal_text_is_escaped_and_links_are_safe():
 def test_requirement_tiles_and_language_filter():
     conn = db.connect(":memory:")
     day = date(2026, 9, 16)
-    run(conn, day, [so("1"), so("2"), so("3")], [Count("studerendeonline", "total", "all", 3)])
+    run(conn, day, [so("1"), so("2"), so("3"), so("4")], [Count("studerendeonline", "total", "all", 4)])
     rows = [
         ("1", "ok", "en", "optional", 15, 20),
         ("2", "ok", "da", "required", 10, 10),
         ("3", "gone", None, None, None, None),
+        ("4", "external", None, None, None, None),
     ]
     conn.executemany(
         "INSERT INTO details (source, source_id, checked_on, status, language, danish, hours_min, hours_max)"
@@ -77,3 +78,4 @@ def test_requirement_tiles_and_language_filter():
     assert "English, Danish optional" in page
     assert 'data-no-danish="1"' in page
     assert ">15-20<" in page
+    assert "Details on employer&#x27;s site" in page or "Details on employer's site" in page
