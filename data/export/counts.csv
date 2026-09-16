@@ -24,9 +24,9 @@ run_date,source,dimension,value,count
 2026-09-16,jobindex,query,"""student assistant""",38
 2026-09-16,jobindex,query,"""student position""",6
 2026-09-16,jobindex,query,"""student worker""",10
-2026-09-16,jobindex,query,studentermedarbejder,12
-2026-09-16,jobindex,query,studentermedhjælper,203
-2026-09-16,jobindex,query,studiejob,138
+2026-09-16,jobindex,query,studentermedarbejder,13
+2026-09-16,jobindex,query,studentermedhjælper,204
+2026-09-16,jobindex,query,studiejob,137
 2026-09-16,jobindex,query,werkstudent,0
 2026-09-16,studerendeonline,sector,Advokat & Revision,16
 2026-09-16,studerendeonline,sector,Elektronik & Maskin,17
