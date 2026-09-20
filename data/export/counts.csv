@@ -99,3 +99,23 @@ run_date,source,dimension,value,count
 2026-09-19,studerendeonline,sector,Rådgivning & Konsulentservice,51
 2026-09-19,studerendeonline,sector,"Stat, Politik & Samfund",79
 2026-09-19,studerendeonline,total,all,417
+2026-09-20,jobindex,query,"""deltid studerende""",0
+2026-09-20,jobindex,query,"""part-time student""",10
+2026-09-20,jobindex,query,"""student assistant""",41
+2026-09-20,jobindex,query,"""student position""",5
+2026-09-20,jobindex,query,"""student worker""",8
+2026-09-20,jobindex,query,studentermedarbejder,16
+2026-09-20,jobindex,query,studentermedhjælper,204
+2026-09-20,jobindex,query,studiejob,131
+2026-09-20,jobindex,query,werkstudent,0
+2026-09-20,studerendeonline,sector,Advokat & Revision,16
+2026-09-20,studerendeonline,sector,Elektronik & Maskin,17
+2026-09-20,studerendeonline,sector,"Finans, Forsikring & Pension",26
+2026-09-20,studerendeonline,sector,Forskning & Uddannelse,45
+2026-09-20,studerendeonline,sector,IT & Tele,33
+2026-09-20,studerendeonline,sector,Kommuner,18
+2026-09-20,studerendeonline,sector,"Kultur, Medier & Underholdning",16
+2026-09-20,studerendeonline,sector,"Medicinal, Biotek & Kemi",22
+2026-09-20,studerendeonline,sector,Rådgivning & Konsulentservice,51
+2026-09-20,studerendeonline,sector,"Stat, Politik & Samfund",79
+2026-09-20,studerendeonline,total,all,416
