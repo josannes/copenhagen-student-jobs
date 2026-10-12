@@ -465,3 +465,14 @@ run_date,source,dimension,value,count
 2026-10-11,studerendeonline,sector,Rådgivning & Konsulentservice,53
 2026-10-11,studerendeonline,sector,"Stat, Politik & Samfund",74
 2026-10-11,studerendeonline,total,all,403
+2026-10-12,studerendeonline,sector,Advokat & Revision,19
+2026-10-12,studerendeonline,sector,"Finans, Forsikring & Pension",19
+2026-10-12,studerendeonline,sector,Forskning & Uddannelse,41
+2026-10-12,studerendeonline,sector,Handel & Service,19
+2026-10-12,studerendeonline,sector,IT & Tele,32
+2026-10-12,studerendeonline,sector,Kommuner,21
+2026-10-12,studerendeonline,sector,"Kultur, Medier & Underholdning",26
+2026-10-12,studerendeonline,sector,"Medicinal, Biotek & Kemi",19
+2026-10-12,studerendeonline,sector,Rådgivning & Konsulentservice,53
+2026-10-12,studerendeonline,sector,"Stat, Politik & Samfund",72
+2026-10-12,studerendeonline,total,all,394
