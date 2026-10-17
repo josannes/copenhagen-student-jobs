@@ -79,3 +79,17 @@ def test_requirement_tiles_and_language_filter():
     assert 'data-no-danish="1"' in page
     assert ">15-20<" in page
     assert "Details on employer&#x27;s site" in page or "Details on employer's site" in page
+
+
+def test_a_job_on_both_portals_is_one_row():
+    conn = db.connect(":memory:")
+    day = date(2026, 9, 16)
+    title = "Studentermedhjælper til kommunikation og analyse i Eksempel"
+    run(conn, day, [so("1", title=title)], [Count("studerendeonline", "total", "all", 1)])
+    ji = Posting(source="jobindex", source_id="h1", title=title, url="https://example.org/h1")
+    run(conn, day, [ji], [])
+    page = render(load(conn))
+    assert page.count(title) == 1
+    assert 'data-source="studerendeonline jobindex"' in page
+    assert 'also on <a href="https://example.org/h1"' in page
+    assert "1 copy of a job already in the list" in page

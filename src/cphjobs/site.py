@@ -8,10 +8,13 @@ import html
 import json
 import re
 import sqlite3
+from collections import Counter
 from dataclasses import dataclass
 from statistics import median
 from datetime import date, timedelta
 from pathlib import Path
+
+from .clean import REASONS, clean
 
 REPO_URL = "https://github.com/josannes/copenhagen-student-jobs"
 COMPLETE_SOURCE = "studerendeonline"  # lists every student job, so the headline figures use it
@@ -23,7 +26,13 @@ class Dashboard:
     as_of: date
     total_series: list[tuple[date, int]]
     sectors: list[tuple[str, int]]
-    postings: list[dict]
+    postings: list[dict]  # one per job, after clean()
+    hidden: Counter  # postings left out, per reason
+
+    @property
+    def portal_total(self) -> int:
+        """StuderendeOnline's own count for the Capital Region, before cleaning."""
+        return self.total_series[-1][1] if self.total_series else len(self.complete)
 
     @property
     def complete(self) -> list[dict]:
@@ -67,7 +76,7 @@ def load(conn: sqlite3.Connection) -> Dashboard | None:
     ]
     # Open = collected on the source's latest run, the deadline hasn't passed, and the
     # posting's own page hasn't been removed.
-    postings = [
+    collected = [
         dict(r)
         for r in conn.execute(
             """
@@ -82,7 +91,8 @@ def load(conn: sqlite3.Connection) -> Dashboard | None:
             (latest,),
         )
     ]
-    return Dashboard(as_of, total_series, sectors, postings)
+    postings, hidden = clean(collected, as_of)
+    return Dashboard(as_of, total_series, sectors, postings, hidden)
 
 
 # ---------------------------------------------------------------- formatting
@@ -115,7 +125,7 @@ def deadline_text(p: dict) -> str:
 
 
 def stat_tiles(d: Dashboard) -> str:
-    postings = d.complete
+    postings = d.postings
     week = d.as_of + timedelta(days=7)
     asap = sum(p["deadline_kind"] == "asap" for p in postings)
     due = sum(bool(p["deadline"]) and p["deadline"] <= week.isoformat() for p in postings)
@@ -201,7 +211,7 @@ def sector_bars(d: Dashboard) -> str:
     if not d.sectors:
         return '<p class="empty">No sector figures yet.</p>'
     top = max(n for _, n in d.sectors)
-    total = d.total_series[-1][1] if d.total_series else None
+    total = d.portal_total
     rows = []
     for name, n in d.sectors:
         share = f" · {round(100 * n / total)}% of all postings" if total else ""
@@ -268,15 +278,21 @@ def total_line(d: Dashboard) -> str:
 def posting_rows(d: Dashboard) -> str:
     rows = []
     for p in d.postings:
-        source = SOURCE_NAMES.get(p["source"], p["source"])
+        source = e(SOURCE_NAMES.get(p["source"], p["source"]))
+        if p["also"]:
+            links = ", ".join(
+                f'<a href="{e(safe_url(url))}" rel="noopener">{e(SOURCE_NAMES.get(s, s))}</a>' for s, url in p["also"]
+            )
+            source += f", also on {links}"
+        sources = " ".join([p["source"], *(s for s, _ in p["also"])])
         haystack = " ".join(filter(None, (p["title"], p["company"], p["location"]))).lower()
         english = p["language"] == "en"
         rows.append(
-            f'<tr data-source="{e(p["source"])}" data-deadline="{e(p["deadline"] or "")}" '
+            f'<tr data-source="{e(sources)}" data-deadline="{e(p["deadline"] or "")}" '
             f'data-listed="{e(p["listed"] or "")}" data-search="{e(haystack)}" '
             f'data-english="{int(english)}" data-no-danish="{int(english and p["danish"] != "required")}">'
             f'<td class="col-title"><a href="{e(safe_url(p["url"]))}" rel="noopener">{e(p["title"])}</a>'
-            f'<div class="src">{e(source)}</div></td>'
+            f'<div class="src">{source}</div></td>'
             f'<td data-label="Company">{e(p["company"] or "")}</td>'
             f'<td data-label="Location">{e(p["location"] or "")}</td>'
             f"{detail_cells(p)}"
@@ -289,21 +305,39 @@ def posting_rows(d: Dashboard) -> str:
 # ---------------------------------------------------------------- page
 
 
+def hidden_note(d: Dashboard) -> str:
+    parts = [f"{fmt_int(d.hidden[k])} {text}" for k, text in REASONS.items() if d.hidden[k]]
+    if d.hidden["duplicate"]:
+        n = d.hidden["duplicate"]
+        parts.append(f"{fmt_int(n)} {'copy' if n == 1 else 'copies'} of a job already in the list")
+    if not parts:
+        return ""
+    return e("Left out of the list and the figures: " + "; ".join(parts) + ".")
+
+
 def render(d: Dashboard) -> str:
-    total = d.total_series[-1][1] if d.total_series else len(d.complete)
     sector_sum = sum(n for _, n in d.sectors)
-    counts_by_source = {s: sum(p["source"] == s for p in d.postings) for s in SOURCE_NAMES}
+    counts_by_source = {
+        s: sum(p["source"] == s or any(a == s for a, _ in p["also"]) for p in d.postings) for s in SOURCE_NAMES
+    }
+    only_jobindex = sum(p["source"] == "jobindex" for p in d.postings)
     source_options = "".join(
         f'<option value="{s}">{e(name)} ({fmt_int(counts_by_source[s])})</option>'
         for s, name in SOURCE_NAMES.items()
     )
     values = {
         "as_of": e(fmt_date(d.as_of)),
-        "total": fmt_int(total),
+        "total": fmt_int(len(d.postings)),
+        "hero_note": e(
+            f"{fmt_int(len(d.complete))} on StuderendeOnline and {fmt_int(only_jobindex)} more found only on Jobindex. "
+            "A job listed on both counts once."
+        ),
+        "portal_total": fmt_int(d.portal_total),
+        "hidden_note": hidden_note(d),
         "tiles": stat_tiles(d),
         "req_note": e(requirement_note(d)),
         "req_tiles": requirement_tiles(d),
-        "sector_note": e(f"The largest sectors on StuderendeOnline, {fmt_int(sector_sum)} of {fmt_int(total)} postings."),
+        "sector_note": e(f"The largest sectors as StuderendeOnline counts them, {fmt_int(sector_sum)} of its {fmt_int(d.portal_total)} postings."),
         "sector_bars": sector_bars(d),
         "total_line": total_line(d),
         "source_options": source_options,
@@ -359,6 +393,7 @@ h2 { font-size: 1.1rem; margin: 0 0 4px; }
 .hero { margin: 28px 0 20px; }
 .hero-value { font-size: 64px; font-weight: 600; line-height: 1; }
 .hero-label { font-size: 1.05rem; color: var(--ink-2); margin-top: 6px; }
+.hero-note { font-size: 0.9rem; color: var(--muted); margin: 4px 0 0; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
 .card, .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
 .tile { padding: 16px; }
@@ -426,7 +461,8 @@ footer p { margin: 6px 0; }
 
 <div class="hero">
   <div class="hero-value">{{total}}</div>
-  <div class="hero-label">student jobs open in the Capital Region on StuderendeOnline</div>
+  <div class="hero-label">student jobs open in Greater Copenhagen</div>
+  <p class="hero-note">{{hero_note}}</p>
 </div>
 
 <div class="tiles">{{tiles}}</div>
@@ -445,7 +481,7 @@ footer p { margin: 6px 0; }
   </section>
   <section class="card">
     <h2>Open student jobs over time</h2>
-    <p class="note">All student jobs in the Capital Region on StuderendeOnline, per day.</p>
+    <p class="note">The number StuderendeOnline lists for the Capital Region each day, {{portal_total}} today. It includes the old postings and copies that the list below leaves out.</p>
     {{total_line}}
   </section>
 </div>
@@ -483,9 +519,12 @@ footer p { margin: 6px 0; }
   <p>Once, each posting's own page is read for its language, whether it asks for Danish, hours per week and hourly pay.
   This uses plain text rules, so a posting that phrases things unusually can be missed. Postings on Jobindex that send you on to
   the employer's own site are not read.</p>
-  <p>StuderendeOnline lists every student job in the Capital Region, so the figures above come from there.
-  Jobindex shows at most 20 results per search, so its postings in the table are a sample.
-  The same job can appear on both sites. "Listed" is the date the portal shows, which for StuderendeOnline is when the posting was last updated.</p>
+  <p>StuderendeOnline lists every student job in the Capital Region. Jobindex shows at most 20 results per search,
+  so it adds a sample of the jobs StuderendeOnline doesn't have. Language, hours and pay come from StuderendeOnline.
+  A job on both sites is shown once.
+  Postings not updated in 90 days, jobs in other cities and PhD positions or events are left out.
+  "Listed" is the date the portal shows, which for StuderendeOnline is when the posting was last updated.</p>
+  <p>{{hidden_note}}</p>
   <p>Not affiliated with either portal. Code and data: <a href="{{repo}}">{{repo}}</a></p>
 </footer>
 </div>
@@ -505,7 +544,7 @@ footer p { margin: 6px 0; }
       : (b.dataset.listed || "").localeCompare(a.dataset.listed || ""));
     let shown = 0;
     for (const row of sorted) {
-      const match = (!source.value || row.dataset.source === source.value)
+      const match = (!source.value || row.dataset.source.split(" ").includes(source.value))
         && (!lang.value || (lang.value === "english" ? row.dataset.english === "1" : row.dataset.noDanish === "1"))
         && words.every(w => row.dataset.search.includes(w));
       row.hidden = !match;
