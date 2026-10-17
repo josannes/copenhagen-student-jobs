@@ -62,6 +62,17 @@ def test_agency_posting_without_logo():
     assert posting.location == "Storkøbenhavn (Delvist fjernarbejde), Øresundsregionen"
 
 
+def test_company_longer_than_logo_name():
+    # The logo says "Eksempel Forsikring", the teaser "Eksempel Forsikring, Gensidig".
+    html = card(3100005, company="Eksempel Forsikring, Gensidig").replace(
+        'alt="Eksempel Forsikring, Gensidig - logo"', 'alt="Eksempel Forsikring - logo"'
+    )
+    html = html.replace("Øresundsregionen</div>", "Fyn, Vestjylland +1 andre</div>")
+    (posting,), _ = so.parse_list_page(list_page([html]))
+    assert posting.company == "Eksempel Forsikring, Gensidig"
+    assert posting.location == "Storkøbenhavn (Delvist fjernarbejde), Fyn, Vestjylland +1 andre"
+
+
 def test_parse_sector_counts():
     page = """<p>Vi har opslag fordelt på brancher som
       <a href="/job/?cvtype=4&amt=2&max=20&branche=1">IT &amp; Tele</a> (31 jobopslag),

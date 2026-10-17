@@ -33,6 +33,20 @@ def _clean(text: str) -> str:
     return re.sub(r"\(\s+", "(", re.sub(r"\s+\)", ")", text))  # "( Delvist fjernarbejde )"
 
 
+# StuderendeOnline's regions, as they appear after the employer in a listing's teaser.
+AREAS = {
+    "Storkøbenhavn", "Øresundsregionen", "Nordsjælland", "Østsjælland", "Vestsjælland",
+    "Sydsjælland & Øer", "Bornholm", "Fyn", "Nordjylland", "Østjylland (Aarhus)",
+    "Midtjylland", "Vestjylland", "Sydvestjylland (Esbjerg)", "Sydøstjylland",
+    "Sønderjylland", "Grønland & Færøerne", "Udlandet (øvrige)",
+}
+
+
+def _is_area(segment: str) -> bool:
+    # "Storkøbenhavn (Delvist fjernarbejde)", "Vestjylland +1 andre"
+    return re.sub(r"( \(Delvist fjernarbejde\)| \+\d+ andre)+$", "", segment) in AREAS
+
+
 def _dmy(text: str) -> date | None:
     m = re.search(r"(\d{2})\.(\d{2})\.(\d{4})", text)
     return date(int(m[3]), int(m[2]), int(m[1])) if m else None
@@ -60,13 +74,21 @@ def _posting(item) -> Posting | None:
         company = re.sub(r"\s*-\s*logo$", "", logo["alt"]).strip() or None
 
     # "Studiejob, Deltidsjob hos <company>, <area>, <area>", or "via <agency>" when a
-    # recruitment agency posts on behalf of an unnamed employer.
+    # recruitment agency posts on behalf of an unnamed employer. The company name can itself
+    # contain commas, so the location starts at the first known region.
     location = None
     teaser = item.select_one(".job-teaser")
     text = _clean(teaser.get_text()) if teaser else ""
     if m := re.search(r" (?:hos|via) ", text):
         employer_and_areas = text[m.end() :]
-        if company and employer_and_areas.startswith(company):
+        segments = employer_and_areas.split(", ")
+        first_area = next((i for i, s in enumerate(segments) if _is_area(s)), None)
+        if first_area is not None:
+            employer = ", ".join(segments[:first_area])
+            location = ", ".join(segments[first_area:])
+            if employer and (company is None or employer.startswith(company)):
+                company = employer
+        elif company and employer_and_areas.startswith(company):
             location = employer_and_areas[len(company) :].lstrip(", ") or None
         elif company is None:
             company, _, location = (s.strip() for s in employer_and_areas.partition(","))
