@@ -619,3 +619,14 @@ run_date,source,dimension,value,count
 2026-10-25,studerendeonline,sector,Rådgivning & Konsulentservice,56
 2026-10-25,studerendeonline,sector,"Stat, Politik & Samfund",61
 2026-10-25,studerendeonline,total,all,357
+2026-10-26,studerendeonline,sector,"Finans, Forsikring & Pension",21
+2026-10-26,studerendeonline,sector,Forskning & Uddannelse,35
+2026-10-26,studerendeonline,sector,Handel & Service,17
+2026-10-26,studerendeonline,sector,IT & Tele,28
+2026-10-26,studerendeonline,sector,Kommuner,21
+2026-10-26,studerendeonline,sector,"Kultur, Medier & Underholdning",14
+2026-10-26,studerendeonline,sector,"Medicinal, Biotek & Kemi",12
+2026-10-26,studerendeonline,sector,"Regioner, Sundhed- & Socialvæsen",13
+2026-10-26,studerendeonline,sector,Rådgivning & Konsulentservice,54
+2026-10-26,studerendeonline,sector,"Stat, Politik & Samfund",56
+2026-10-26,studerendeonline,total,all,331
