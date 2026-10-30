@@ -674,3 +674,14 @@ run_date,source,dimension,value,count
 2026-10-30,studerendeonline,sector,Rådgivning & Konsulentservice,51
 2026-10-30,studerendeonline,sector,"Stat, Politik & Samfund",65
 2026-10-30,studerendeonline,total,all,322
+2026-10-31,studerendeonline,sector,Advokat & Revision,14
+2026-10-31,studerendeonline,sector,"Finans, Forsikring & Pension",19
+2026-10-31,studerendeonline,sector,Forskning & Uddannelse,36
+2026-10-31,studerendeonline,sector,Handel & Service,22
+2026-10-31,studerendeonline,sector,IT & Tele,24
+2026-10-31,studerendeonline,sector,Kommuner,23
+2026-10-31,studerendeonline,sector,"Medicinal, Biotek & Kemi",16
+2026-10-31,studerendeonline,sector,"Regioner, Sundhed- & Socialvæsen",13
+2026-10-31,studerendeonline,sector,Rådgivning & Konsulentservice,47
+2026-10-31,studerendeonline,sector,"Stat, Politik & Samfund",69
+2026-10-31,studerendeonline,total,all,336
