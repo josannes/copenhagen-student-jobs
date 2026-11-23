@@ -916,3 +916,14 @@ run_date,source,dimension,value,count
 2026-11-22,studerendeonline,sector,Rådgivning & Konsulentservice,48
 2026-11-22,studerendeonline,sector,"Stat, Politik & Samfund",90
 2026-11-22,studerendeonline,total,all,390
+2026-11-23,studerendeonline,sector,"Finans, Forsikring & Pension",24
+2026-11-23,studerendeonline,sector,Forskning & Uddannelse,33
+2026-11-23,studerendeonline,sector,Handel & Service,22
+2026-11-23,studerendeonline,sector,IT & Tele,36
+2026-11-23,studerendeonline,sector,Kommuner,16
+2026-11-23,studerendeonline,sector,"Kultur, Medier & Underholdning",17
+2026-11-23,studerendeonline,sector,"Medicinal, Biotek & Kemi",17
+2026-11-23,studerendeonline,sector,"Regioner, Sundhed- & Socialvæsen",18
+2026-11-23,studerendeonline,sector,Rådgivning & Konsulentservice,48
+2026-11-23,studerendeonline,sector,"Stat, Politik & Samfund",81
+2026-11-23,studerendeonline,total,all,365
